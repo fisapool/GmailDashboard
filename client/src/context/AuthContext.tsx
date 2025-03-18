@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useQuery, useMutation, QueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 // Define User type
 interface User {
@@ -23,7 +24,7 @@ interface AuthContextType {
 // Create context with initial null value
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Custom fetch wrapper for API requests
+// Custom fetch wrapper for API requests (legacy, use apiRequest where possible)
 async function fetchApi(url: string, options?: RequestInit) {
   const response = await fetch(url, {
     ...options,
@@ -49,10 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // User query
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["currentUser"],
-    queryFn: async () => {
+    queryKey: ["/api/auth/me"],
+    queryFn: async ({ queryKey }) => {
       try {
-        const response = await fetch("/api/auth/me", {
+        const response = await fetch(queryKey[0] as string, {
           credentials: "include",
         });
         
@@ -82,11 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (credentials: { username: string; password: string }) => {
-      const response = await fetchApi("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify(credentials),
-      });
-      return response.json();
+      const response = await apiRequest("POST", "/api/auth/login", credentials);
+      return await response.json();
     },
     onSuccess: (userData) => {
       setUser(userData);
