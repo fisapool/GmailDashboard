@@ -1,0 +1,89 @@
+from flask import Flask, render_template, request, redirect, url_for, session
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+import os
+import json
+
+app = Flask(__name__)
+app.secret_key = os.urandom(24)
+
+# Dummy database
+users = {'admin': 'password'}
+gmail_accounts = []
+
+# Google OAuth 2.0 setup
+SCOPES = ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly']
+
+def authenticate():
+    creds = None
+    if os.path.exists('token.json'):
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
+    return creds
+
+@app.route('/')
+def home():
+    if 'username' in session:
+        return redirect(url_for('dashboard'))
+    return render_template('login.html')
+
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.form['username']
+    password = request.form['password']
+    if username in users and users[username] == password:
+        session['username'] = username
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('home'))
+
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    return redirect(url_for('home'))
+
+@app.route('/dashboard')
+def dashboard():
+    if 'username' in session:
+        return render_template('dashboard.html', accounts=gmail_accounts)
+    return redirect(url_for('home'))
+
+@app.route('/add_gmail', methods=['POST'])
+def add_gmail():
+    email = request.form['email']
+    creds = authenticate()
+    if creds:
+        gmail_accounts.append(email)
+    return redirect(url_for('dashboard'))
+
+@app.route('/check_status')
+def check_status():
+    if 'username' in session:
+        results = {}
+        for email in gmail_accounts:
+            status = check_gmail_status(email, 'test@example.com')
+            results[email] = status
+        log_results(results)
+        return render_template('status.html', results=results)
+    return redirect(url_for('home'))
+
+@app.route('/keep_alive')
+def keep_alive():
+    # Implement the keep alive functionality here
+    return redirect(url_for('dashboard'))
+
+@app.route('/schedule_tasks')
+def schedule_tasks():
+    # Implement the schedule tasks functionality here
+    return redirect(url_for('dashboard'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
