@@ -52,9 +52,9 @@ export const sessionMiddleware = session({
   resave: true,
   saveUninitialized: true,
   cookie: { 
-    secure: false, // Set to false for development
+    secure: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax',
+    sameSite: 'none',
     httpOnly: true,
   },
   store: new MemoryStore({
@@ -76,12 +76,12 @@ export async function loginUser(username: string, password: string) {
   if (!user) {
     throw new Error('Invalid username or password');
   }
-  
+
   const isValid = await verifyPassword(password, user.password);
   if (!isValid) {
     throw new Error('Invalid username or password');
   }
-  
+
   return { id: user.id, username: user.username, email: user.email, name: user.name };
 }
 
@@ -92,16 +92,16 @@ export async function registerUser(username: string, password: string, email: st
   if (existingUsername) {
     throw new Error('Username already taken');
   }
-  
+
   // Check if email already exists
   const existingEmail = await storage.getUserByEmail(email);
   if (existingEmail) {
     throw new Error('Email already registered');
   }
-  
+
   // Hash password
   const hashedPassword = await hashPassword(password);
-  
+
   // Create user
   const user = await storage.createUser({
     username,
@@ -109,6 +109,6 @@ export async function registerUser(username: string, password: string, email: st
     email,
     name
   });
-  
+
   return { id: user.id, username: user.username, email: user.email, name: user.name };
 }
