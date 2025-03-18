@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useQuery, useMutation, QueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getQueryFn } from "@/lib/queryClient";
 
 // Define User type
 interface User {
@@ -51,26 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // User query
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["/api/auth/me"],
-    queryFn: async ({ queryKey }) => {
-      try {
-        const response = await fetch(queryKey[0] as string, {
-          credentials: "include",
-        });
-        
-        if (response.status === 401) {
-          return null;
-        }
-        
-        if (!response.ok) {
-          throw new Error("Failed to fetch user data");
-        }
-        
-        return await response.json();
-      } catch (error) {
-        console.error("Error fetching user:", error);
-        return null;
-      }
-    },
+    queryFn: getQueryFn({ on401: "returnNull" }),
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: false,
   });
@@ -107,11 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Register mutation
   const registerMutation = useMutation({
     mutationFn: async (userData: { username: string; password: string; email: string; name?: string }) => {
-      const response = await fetchApi("/api/auth/register", {
-        method: "POST",
-        body: JSON.stringify(userData),
-      });
-      return response.json();
+      const response = await apiRequest("POST", "/api/auth/register", userData);
+      return await response.json();
     },
     onSuccess: (userData) => {
       setUser(userData);
@@ -134,9 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await fetchApi("/api/auth/logout", {
-        method: "POST",
-      });
+      await apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
       setUser(null);
