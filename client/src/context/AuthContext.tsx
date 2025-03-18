@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
 
-  // User query
+  // User query - fetch current authenticated user
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["/api/auth/me"],
     queryFn: getQueryFn({ on401: "returnNull" }),
