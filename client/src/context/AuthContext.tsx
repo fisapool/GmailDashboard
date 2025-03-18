@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useQuery, useMutation, QueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
+// Define User type
 interface User {
   id: number;
   username: string;
@@ -10,6 +10,7 @@ interface User {
   name?: string;
 }
 
+// Define AuthContext type
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -19,45 +20,82 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
+// Create context with initial null value
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Custom fetch wrapper for API requests
+async function fetchApi(url: string, options?: RequestInit) {
+  const response = await fetch(url, {
+    ...options,
+    credentials: "include",
+    headers: {
+      ...options?.headers,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || response.statusText);
+  }
+
+  return response;
+}
+
+// Provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
 
-  // Fetch current user
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['/api/auth/me'],
-    queryFn: ({ queryKey }) => 
-      fetch(queryKey[0] as string, { credentials: 'include' })
-        .then(res => {
-          if (res.status === 401) return null;
-          if (!res.ok) throw new Error('Failed to fetch user');
-          return res.json();
-        }),
+  // User query
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: async () => {
+      try {
+        const response = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+        
+        if (response.status === 401) {
+          return null;
+        }
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch user data");
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        return null;
+      }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
     retry: false,
   });
 
-  // Set user from query result
+  // Update user state when data changes
   useEffect(() => {
-    if (data) {
-      setUser(data);
-    } else if (isError) {
-      setUser(null);
-    }
-  }, [data, isError]);
+    setUser(data || null);
+  }, [data]);
 
   // Login mutation
   const loginMutation = useMutation({
-    mutationFn: (credentials: { username: string; password: string }) => 
-      apiRequest('POST', '/api/auth/login', credentials),
-    onSuccess: async (res) => {
-      const userData = await res.json();
+    mutationFn: async (credentials: { username: string; password: string }) => {
+      const response = await fetchApi("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify(credentials),
+      });
+      return response.json();
+    },
+    onSuccess: (userData) => {
       setUser(userData);
       toast({
         title: "Login successful",
         description: `Welcome back, ${userData.username}!`,
       });
+      // Refetch user data to update context
+      refetch();
     },
     onError: (error: Error) => {
       toast({
@@ -70,15 +108,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Register mutation
   const registerMutation = useMutation({
-    mutationFn: (userData: { username: string; password: string; email: string; name?: string }) => 
-      apiRequest('POST', '/api/auth/register', userData),
-    onSuccess: async (res) => {
-      const userData = await res.json();
+    mutationFn: async (userData: { username: string; password: string; email: string; name?: string }) => {
+      const response = await fetchApi("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify(userData),
+      });
+      return response.json();
+    },
+    onSuccess: (userData) => {
       setUser(userData);
       toast({
         title: "Registration successful",
         description: `Welcome, ${userData.username}!`,
       });
+      // Refetch user data to update context
+      refetch();
     },
     onError: (error: Error) => {
       toast({
@@ -91,18 +135,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Logout mutation
   const logoutMutation = useMutation({
-    mutationFn: () => apiRequest('POST', '/api/auth/logout'),
+    mutationFn: async () => {
+      await fetchApi("/api/auth/logout", {
+        method: "POST",
+      });
+    },
     onSuccess: () => {
       setUser(null);
       toast({
         title: "Logged out",
         description: "You have been successfully logged out",
       });
+      // Refetch user data to update context
+      refetch();
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Logout failed",
-        description: "An error occurred while logging out",
+        description: error.message || "An error occurred while logging out",
         variant: "destructive",
       });
     },
@@ -123,7 +173,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await logoutMutation.mutateAsync();
   };
 
-  const value = {
+  // Context value
+  const contextValue: AuthContextType = {
     user,
     isAuthenticated: !!user,
     isLoading,
@@ -132,9 +183,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={contextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
+// Hook to use the auth context
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
