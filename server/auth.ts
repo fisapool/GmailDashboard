@@ -54,6 +54,8 @@ export const sessionMiddleware = session({
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax',  // Allow cookies to be sent with cross-site requests
+    httpOnly: true,
   },
   store: new MemoryStore({
     checkPeriod: 86400000 // prune expired entries every 24h

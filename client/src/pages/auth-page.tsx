@@ -53,11 +53,6 @@ export default function AuthPage() {
   const { user, login, register, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("login");
 
-  // Redirect if user is already logged in
-  if (user) {
-    return <Redirect to="/" />;
-  }
-
   // Login form
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -78,6 +73,11 @@ export default function AuthPage() {
       confirmPassword: "",
     },
   });
+  
+  // Redirect if user is already logged in - must be after all hooks
+  if (user) {
+    return <Redirect to="/" />;
+  }
 
   // Handle login form submission
   const onLoginSubmit = async (values: z.infer<typeof loginSchema>) => {
