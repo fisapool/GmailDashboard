@@ -86,6 +86,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(500).json({ message: "Login failed due to session error" });
         }
         
+        res.cookie('connect.sid', req.sessionID, {
+          httpOnly: true,
+          secure: false,
+          sameSite: 'lax',
+          maxAge: 24 * 60 * 60 * 1000
+        });
+        
         res.json({
           id: user.id,
           username: user.username,
