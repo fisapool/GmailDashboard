@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import session from 'express-session';
-import memorystore from 'memorystore';
+import FileStore from 'session-file-store';
 import { storage } from './storage';
 
 // Declare module to extend express-session types
@@ -11,7 +11,7 @@ declare module 'express-session' {
   }
 }
 
-const MemoryStore = memorystore(session);
+const SessionFileStore = FileStore(session);
 
 // Encryption key setup
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
@@ -52,13 +52,14 @@ export const sessionMiddleware = session({
   resave: true,
   saveUninitialized: true,
   cookie: { 
-    secure: true,
+    secure: false, // Set to true in production
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'none',
+    sameSite: 'lax',
     httpOnly: true,
   },
-  store: new MemoryStore({
-    checkPeriod: 86400000 // prune expired entries every 24h
+  store: new SessionFileStore({
+    path: './sessions',
+    ttl: 86400, // 1 day
   })
 });
 
