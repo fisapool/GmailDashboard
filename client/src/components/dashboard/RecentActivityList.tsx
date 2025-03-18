@@ -99,7 +99,7 @@ export default function RecentActivityList({ activities }: RecentActivityListPro
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-medium">Recent Activity</CardTitle>
         <Link href="/activity">
-          <a className="text-primary text-sm hover:text-primary-hover">View all</a>
+          <div className="text-primary text-sm hover:text-primary-hover cursor-pointer">View all</div>
         </Link>
       </CardHeader>
       <CardContent className="pt-0">

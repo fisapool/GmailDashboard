@@ -38,11 +38,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set session
       req.session.userId = user.id;
       
-      res.status(201).json({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        name: user.name
+      // Save session before responding
+      req.session.save(err => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Registration failed due to session error" });
+        }
+        
+        res.status(201).json({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          name: user.name
+        });
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -71,11 +79,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set session
       req.session.userId = user.id;
       
-      res.json({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        name: user.name
+      // Save session before responding
+      req.session.save(err => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Login failed due to session error" });
+        }
+        
+        res.json({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          name: user.name
+        });
       });
     } catch (error) {
       res.status(500).json({ message: "Login failed" });
