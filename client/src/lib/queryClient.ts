@@ -2,6 +2,29 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 type UnauthorizedBehavior = "returnNull" | "throw";
 
+export async function apiRequest(
+  method: string,
+  url: string,
+  data?: unknown | undefined,
+): Promise<Response> {
+  const res = await fetch(url, {
+    method,
+    headers: {
+      ...(data ? { "Content-Type": "application/json" } : {}),
+      "Accept": "application/json"
+    },
+    body: data ? JSON.stringify(data) : undefined,
+    credentials: "include", // Always include credentials for cross-site requests
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.message || res.statusText);
+  }
+
+  return res;
+}
+
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
