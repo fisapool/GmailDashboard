@@ -101,7 +101,7 @@ export default function AccountsOverviewTable({
                 {accounts.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                      No accounts found. <Link href="/accounts"><a className="text-primary">Add an account</a></Link>
+                      No accounts found. <Link href="/accounts" className="text-primary">Add an account</Link>
                     </td>
                   </tr>
                 ) : (
