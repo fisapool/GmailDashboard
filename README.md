@@ -3,6 +3,29 @@
 
 A comprehensive web application for managing multiple Gmail accounts with features for OAuth authentication, SMTP verification, and automated task scheduling.
 
+## Requirements
+
+### System Requirements
+- Node.js 18.x or higher
+- NPM 9.x or higher
+- Modern web browser with JavaScript enabled
+
+### Main Dependencies
+- React 18 with TypeScript
+- Express.js for backend API
+- Google OAuth2 for authentication
+- Node-schedule for task automation
+- Nodemailer for email verification
+- TanStack Query for data fetching
+- Tailwind CSS for styling
+- Shadcn/ui for UI components
+
+### Security Requirements
+- HTTPS enabled for production
+- Secure session management
+- Encrypted token storage
+- Environment variables for sensitive data
+
 ## Features
 
 - **Account Management**: Add and manage multiple Gmail accounts
