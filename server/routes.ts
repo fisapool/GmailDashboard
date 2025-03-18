@@ -602,6 +602,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/accounts/check-status", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      const accounts = await storage.getAccountsByUserId(userId);
+      
+      const { verifyAllAccounts } = require('./gmail-checker');
+      const results = await verifyAllAccounts(accounts);
+      
+      // Update account statuses in database
+      for (const [email, status] of Object.entries(results)) {
+        const account = accounts.find(a => a.email === email);
+        if (account) {
+          await storage.updateAccount(account.id, { status });
+        }
+      }
+      
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check account status" });
+    }
+  });
+
   app.get("/api/accounts/:id/activities", isAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId;
