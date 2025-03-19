@@ -152,7 +152,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/accounts", isAuthenticated, async (req, res) => {
+  app.post("/api/oauth/bulk", isAuthenticated, async (req, res) => {
+  try {
+    const { projectId, clientName, redirectUris, count } = req.body;
+    
+    const bulkManager = new BulkOAuthManager();
+    const credentials = await bulkManager.createBulkCredentials({
+      projectId,
+      clientName,
+      redirectUris,
+      count
+    });
+
+    const verificationResults = await bulkManager.verifyCredentials(credentials);
+    
+    res.json({
+      success: true,
+      credentials,
+      verificationResults
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+app.post("/api/accounts", isAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId;
       
