@@ -49,17 +49,19 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 // Session middleware configuration
 export const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'gmail-account-manager-secret',
-  resave: true,
-  saveUninitialized: true,
+  resave: false,
+  saveUninitialized: false,
   cookie: { 
-    secure: false, // Set to true in production
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    secure: false,
+    maxAge: 24 * 60 * 60 * 1000,
     sameSite: 'lax',
     httpOnly: true,
+    path: '/'
   },
   store: new SessionFileStore({
     path: './sessions',
-    ttl: 86400, // 1 day
+    ttl: 86400,
+    reapInterval: 3600
   })
 });
 
